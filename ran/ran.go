@@ -1,38 +1,33 @@
 package ran
 
 import (
-	"fmt"
 	"net/http"
 )
 
-type HandlerFunction func(http.ResponseWriter, *http.Request)
+type HandlerFunction func(c *Context)
 
 const (
-	M_POST = "POST"
-	M_GET = "GET"
+	MPost = "POST"
+	MGet = "GET"
 )
+
 type ranEngine struct {
-	router map[string]HandlerFunction
+	router *router
 }
 
 func New() *ranEngine {
-	engine := new(ranEngine)
-	engine.router = make(map[string]HandlerFunction)
-	return engine
+	return &ranEngine{newRouter()}
 }
 
-func (ran *ranEngine) addRoute(method string, pattern string, handler HandlerFunction) {
-	str := method + pattern
-	//TODO: log
-	ran.router[str] = handler
+func (ran *ranEngine) addRoute(method, pattern string, handler HandlerFunction) {
+	ran.router.addRoute(method, pattern, handler)
 }
-
 func (ran *ranEngine) GET(pattern string, handler HandlerFunction) {
-	ran.addRoute(M_GET, pattern, handler)
+	ran.addRoute(MGet, pattern, handler)
 }
 
 func (ran *ranEngine) POST(pattern string, handler HandlerFunction) {
-	ran.addRoute(M_POST, pattern, handler)
+	ran.addRoute(MPost, pattern, handler)
 }
 
 func (ran *ranEngine) Run(addr string) error{
@@ -40,11 +35,6 @@ func (ran *ranEngine) Run(addr string) error{
 }
 
 func (ran *ranEngine)ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	key := r.Method + r.URL.Path
-	if handler, ok := ran.router[key]; ok {
-		handler(w, r)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "404 NOT FOUND:%s", r.URL)
-	}
+	c := newContext(w, r)
+	ran.router.handle(c)
 }

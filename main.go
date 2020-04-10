@@ -1,17 +1,25 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"ran"
 )
 
 func main() {
-	ranlin := ran.New()
-	ranlin.GET("/", func(w http.ResponseWriter, r *http.Request) {
-		for k, v := range r.Header {
-			fmt.Fprintf(w, "%q=%q", k, v)
-		}
+	r := ran.New()
+	r.GET("/", func(c *ran.Context) {
+		c.HTML(http.StatusOK, "<h1>Hello Ran</h1>")
 	})
-	ranlin.Run("localhost:2333")
+	r.GET("/hello", func(c *ran.Context) {
+		c.String(http.StatusOK, "Hello %s, you are at %s\n", c.Query("name"), c.Path)
+	})
+
+	r.POST("/login", func(c *ran.Context) {
+		c.JSON(http.StatusOK, ran.H{
+			"username": c.PostForm("username"),
+			"passwd": c.PostForm("passwd"),
+		})
+	})
+
+	r.Run(":2333")
 }
